@@ -87,7 +87,7 @@ public class CancellationTokenSource : IDisposable
 
 	private func removeSubscriber(_ subscriber: Subscriber) {
 		synced(self) {
-			let index = _subscribers.index { s in
+			let index = _subscribers.firstIndex { s in
 				return s === subscriber
 			};
 			_subscribers.remove(at: index!)
