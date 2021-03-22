@@ -14,8 +14,8 @@ public class CancellationTokenSource : IDisposable
 			return true
 		}
 
-		defer { objc_sync_exit(self) }
-		objc_sync_enter(self)
+		defer { _lock.unlock() }
+		_lock.lock()
 		return _isCancellationRequested
 	}
 
@@ -34,8 +34,8 @@ public class CancellationTokenSource : IDisposable
 			return
 		}
 
-		defer { objc_sync_exit(self) }
-		objc_sync_enter(self)
+		defer { _lock.unlock() }
+		_lock.lock()
 		if (_isDisposed) {
 			return
 		}
@@ -45,7 +45,7 @@ public class CancellationTokenSource : IDisposable
 
 	public func cancel() {
 		var notify = false
-		synced(self) {
+		synced(_lock) {
 			notify = !_isCancellationRequested
 			_isCancellationRequested = true
 		}
@@ -58,7 +58,7 @@ public class CancellationTokenSource : IDisposable
 		let subscriber = Subscriber(action)
 		var shouldThrow = false
 		var shouldNotify = false
-		synced(self) {
+		synced(_lock) {
 			shouldThrow = _isDisposed
 			shouldNotify = !_isDisposed && _isCancellationRequested
 			if (!shouldThrow && !shouldNotify) {
@@ -80,13 +80,13 @@ public class CancellationTokenSource : IDisposable
 	}
 
 	private func addSubscriber(_ subscriber: Subscriber) {
-		synced(self) {
+		synced(_lock) {
 			_subscribers.append(subscriber)
 		}
 	}
 
 	private func removeSubscriber(_ subscriber: Subscriber) {
-		synced(self) {
+		synced(_lock) {
 			let index = _subscribers.firstIndex { s in
 				return s === subscriber
 			};
@@ -95,7 +95,7 @@ public class CancellationTokenSource : IDisposable
 	}
 
 	private func notifySubscribers() {
-		synced(self) {
+		synced(_lock) {
 			for subscriber in _subscribers {
 				subscriber.notify()
 			}
@@ -105,6 +105,7 @@ public class CancellationTokenSource : IDisposable
 	private var _isCancellationRequested: Bool = false
 	private var _isDisposed: Bool = false
 	private var _subscribers: Array = Array<Subscriber>()
+	private var _lock = NSLock()
 }
 
 public class CancellationToken
@@ -161,10 +162,10 @@ public class CancellationTokenRegistration : IDisposable
 			return
 		}
 
-		synced(self) {
-			_onDispose?()
-			_onDispose = nil
-		}
+		defer { _lock.unlock() }
+		_lock.lock()
+		_onDispose?()
+		_onDispose = nil
 	}
 
 	internal init (_ onDispose: @escaping DisposeRegistrationDelegate) {
@@ -172,11 +173,12 @@ public class CancellationTokenRegistration : IDisposable
 	}
 
 	private var _onDispose: DisposeRegistrationDelegate?
+	private var _lock = NSLock()
 }
 
-private func synced(_ lock: Any, _ closure: () -> ()) {
-	defer { objc_sync_exit(lock) }
-	objc_sync_enter(lock)
+private func synced(_ lock: NSLock, _ closure: () -> ()) {
+	defer { lock.unlock() }
+	lock.lock()
 	closure()
 }
 
