@@ -17,5 +17,6 @@ let package = Package(
 			name: "Cancellation",
 			dependencies: ["IDisposable"]
 		),
+		.testTarget(name: "CancellationTests", dependencies: ["Cancellation"]),
 	]
 )
