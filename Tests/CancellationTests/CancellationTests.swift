@@ -56,6 +56,12 @@ class CancellationTests: XCTestCase {
 
 		XCTAssertTrue(threwOperationCanceled)
 
+		let registrationAfterCancellation = try? token.register {
+			callbackHappenedCount += 1
+		}
+		XCTAssertNotNil(registrationAfterCancellation)
+		XCTAssertEqual(callbackHappenedCount, 3)
+
 		source.dispose()
 
 		var threwObjectDisposed = false
