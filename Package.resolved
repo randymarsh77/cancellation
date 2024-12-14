@@ -1,16 +1,15 @@
 {
-  "object": {
-    "pins": [
-      {
-        "package": "IDisposable",
-        "repositoryURL": "https://github.com/randymarsh77/idisposable",
-        "state": {
-          "branch": "master",
-          "revision": "9d2d4c032fdca4d0d81ec191bfcc71c91e88b178",
-          "version": null
-        }
+  "originHash" : "990c819ab7e7651e2d39a0bd8c431b67801ce4a484a4b6da9ceae08d2a0f7eb8",
+  "pins" : [
+    {
+      "identity" : "idisposable",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/randymarsh77/idisposable",
+      "state" : {
+        "branch" : "master",
+        "revision" : "fc259ea73b73ef5f84d7c10258961a9b75074078"
       }
-    ]
-  },
-  "version": 1
+    }
+  ],
+  "version" : 3
 }

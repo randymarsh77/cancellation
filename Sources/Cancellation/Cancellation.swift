@@ -1,16 +1,13 @@
 import Foundation
 import IDisposable
 
-public enum OperationCanceledException : Error
-{
-	case OperationCanceled
+public enum OperationCanceledException: Error {
+	case operationCanceled
 }
 
-public class CancellationTokenSource : IDisposable
-{
-	public var isCancellationRequested: Bool
-	{
-		if (_isCancellationRequested) {
+public class CancellationTokenSource: IDisposable {
+	public var isCancellationRequested: Bool {
+		if _isCancellationRequested {
 			return true
 		}
 
@@ -19,24 +16,21 @@ public class CancellationTokenSource : IDisposable
 		return _isCancellationRequested
 	}
 
-	public var token: CancellationToken
-	{
+	public var token: CancellationToken {
 		return CancellationToken(source: self)
 	}
 
-	public init()
-	{
+	public init() {
 	}
 
-	public func dispose()
-	{
-		if (_isDisposed) {
+	public func dispose() {
+		if _isDisposed {
 			return
 		}
 
 		defer { _lock.unlock() }
 		_lock.lock()
-		if (_isDisposed) {
+		if _isDisposed {
 			return
 		}
 
@@ -49,32 +43,32 @@ public class CancellationTokenSource : IDisposable
 			notify = !_isCancellationRequested
 			_isCancellationRequested = true
 		}
-		if (notify) {
+		if notify {
 			notifySubscribers()
 		}
 	}
 
-	internal func register(_ action: @escaping () -> ()) throws -> CancellationTokenRegistration {
+	internal func register(_ action: @escaping () -> Void) throws -> CancellationTokenRegistration {
 		let subscriber = Subscriber(action)
 		var shouldThrow = false
 		var shouldNotify = false
 		synced(_lock) {
 			shouldThrow = _isDisposed
 			shouldNotify = !_isDisposed && _isCancellationRequested
-			if (!shouldThrow && !shouldNotify) {
+			if !shouldThrow && !shouldNotify {
 				self.addSubscriber(subscriber)
 			}
 		}
-		if (shouldThrow) {
-			throw ObjectDisposedException.ObjectDisposed
+		if shouldThrow {
+			throw ObjectDisposedException.objectDisposed
 		}
-		if (shouldNotify) {
+		if shouldNotify {
 			subscriber.notify()
 		}
 
-		return shouldNotify ?
-			CancellationTokenRegistration {} :
-			CancellationTokenRegistration {
+		return shouldNotify
+			? CancellationTokenRegistration {}
+			: CancellationTokenRegistration {
 				self.removeSubscriber(subscriber)
 			}
 	}
@@ -89,7 +83,7 @@ public class CancellationTokenSource : IDisposable
 		synced(_lock) {
 			let index = _subscribers.firstIndex { s in
 				return s === subscriber
-			};
+			}
 			_subscribers.remove(at: index!)
 		}
 	}
@@ -104,12 +98,11 @@ public class CancellationTokenSource : IDisposable
 
 	private var _isCancellationRequested: Bool = false
 	private var _isDisposed: Bool = false
-	private var _subscribers: Array = Array<Subscriber>()
+	private var _subscribers: Array = [Subscriber]()
 	private var _lock = NSLock()
 }
 
-public class CancellationToken
-{
+public class CancellationToken {
 	public static var None: CancellationToken {
 		return CancellationToken.init(isCanceled: false)
 	}
@@ -122,8 +115,8 @@ public class CancellationToken
 		return _isCancellationRequested()
 	}
 
-	public func register(_ action: @escaping () -> ()) throws -> CancellationTokenRegistration {
-		if (_source == nil) {
+	public func register(_ action: @escaping () -> Void) throws -> CancellationTokenRegistration {
+		if _source == nil {
 			action()
 			return CancellationTokenRegistration {}
 		} else {
@@ -132,8 +125,8 @@ public class CancellationToken
 	}
 
 	public func throwIfCancellationIsRequested() throws {
-		if (_isCancellationRequested()) {
-			throw OperationCanceledException.OperationCanceled
+		if _isCancellationRequested() {
+			throw OperationCanceledException.operationCanceled
 		}
 	}
 
@@ -150,13 +143,12 @@ public class CancellationToken
 
 	private var _canBeCanceled: () -> Bool
 	private var _isCancellationRequested: () -> Bool
-	private var _source: CancellationTokenSource? = nil
+	private var _source: CancellationTokenSource?
 }
 
-internal typealias DisposeRegistrationDelegate = () -> ()
+internal typealias DisposeRegistrationDelegate = () -> Void
 
-public class CancellationTokenRegistration : IDisposable
-{
+public class CancellationTokenRegistration: IDisposable {
 	public func dispose() {
 		if _onDispose == nil {
 			return
@@ -168,7 +160,7 @@ public class CancellationTokenRegistration : IDisposable
 		_onDispose = nil
 	}
 
-	internal init (_ onDispose: @escaping DisposeRegistrationDelegate) {
+	internal init(_ onDispose: @escaping DisposeRegistrationDelegate) {
 		_onDispose = onDispose
 	}
 
@@ -176,15 +168,14 @@ public class CancellationTokenRegistration : IDisposable
 	private var _lock = NSLock()
 }
 
-private func synced(_ lock: NSLock, _ closure: () -> ()) {
+private func synced(_ lock: NSLock, _ closure: () -> Void) {
 	defer { lock.unlock() }
 	lock.lock()
 	closure()
 }
 
-private class Subscriber
-{
-	init(_ callback: @escaping () -> ()) {
+private class Subscriber {
+	init(_ callback: @escaping () -> Void) {
 		_callback = callback
 	}
 
@@ -192,5 +183,5 @@ private class Subscriber
 		_callback()
 	}
 
-	private var _callback: () -> ()
+	private var _callback: () -> Void
 }
