@@ -99,7 +99,7 @@ public class CancellationTokenSource: IDisposable {
 	private var _isCancellationRequested: Bool = false
 	private var _isDisposed: Bool = false
 	private var _subscribers: Array = [Subscriber]()
-	private var _lock = NSLock()
+	private var _lock = NSRecursiveLock()
 }
 
 public class CancellationToken {
@@ -168,7 +168,7 @@ public class CancellationTokenRegistration: IDisposable {
 	private var _lock = NSLock()
 }
 
-private func synced(_ lock: NSLock, _ closure: () -> Void) {
+private func synced(_ lock: NSRecursiveLock, _ closure: () -> Void) {
 	defer { lock.unlock() }
 	lock.lock()
 	closure()
