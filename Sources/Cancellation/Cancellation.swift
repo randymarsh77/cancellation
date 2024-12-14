@@ -7,10 +7,6 @@ public enum OperationCanceledException: Error {
 
 public class CancellationTokenSource: IDisposable {
 	public var isCancellationRequested: Bool {
-		if _isCancellationRequested {
-			return true
-		}
-
 		defer { _lock.unlock() }
 		_lock.lock()
 		return _isCancellationRequested
@@ -20,20 +16,9 @@ public class CancellationTokenSource: IDisposable {
 		return CancellationToken(source: self)
 	}
 
-	public init() {
-	}
-
 	public func dispose() {
-		if _isDisposed {
-			return
-		}
-
 		defer { _lock.unlock() }
 		_lock.lock()
-		if _isDisposed {
-			return
-		}
-
 		_isDisposed = true
 	}
 
@@ -104,7 +89,11 @@ public class CancellationTokenSource: IDisposable {
 
 public class CancellationToken {
 	public static var None: CancellationToken {
-		return CancellationToken.init(isCanceled: false)
+		return CancellationToken(isCanceled: false)
+	}
+
+	public static var Canceled: CancellationToken {
+		return CancellationToken(isCanceled: true)
 	}
 
 	public var canBeCanceled: Bool {
@@ -117,7 +106,9 @@ public class CancellationToken {
 
 	public func register(_ action: @escaping () -> Void) throws -> CancellationTokenRegistration {
 		if _source == nil {
-			action()
+			if (isCancellationRequested) {
+				action()
+			}
 			return CancellationTokenRegistration {}
 		} else {
 			return try _source!.register(action)

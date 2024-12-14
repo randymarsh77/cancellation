@@ -1,3 +1,4 @@
+import IDisposable
 import XCTest
 
 @testable import Cancellation
@@ -12,10 +13,18 @@ class CancellationTests: XCTestCase {
 		XCTAssertTrue(token.canBeCanceled)
 
 		var callbackHappenedCount = 0
-		let registration = try? source.register {
+		let registration1 = try? source.register {
 			callbackHappenedCount += 1
 		}
-		XCTAssertNotNil(registration)
+		XCTAssertNotNil(registration1)
+
+		let registration2 = try? source.register {
+			callbackHappenedCount += 1
+		}
+		XCTAssertNotNil(registration2)
+		// Dispose is safe to call multiple times
+		registration2!.dispose()
+		registration2!.dispose()
 
 		source.cancel()
 
@@ -23,17 +32,52 @@ class CancellationTests: XCTestCase {
 		XCTAssertTrue(token.isCancellationRequested)
 		XCTAssertEqual(callbackHappenedCount, 1)
 
-		var threwException = false
+		var threwOperationCanceled = false
 		do {
 			try token.throwIfCancellationIsRequested()
 		} catch OperationCanceledException.operationCanceled {
-			threwException = true
+			threwOperationCanceled = true
 		} catch {
 			XCTFail("Unexpected error: \(error)")
 		}
 
-		XCTAssertTrue(threwException)
+		XCTAssertTrue(threwOperationCanceled)
 
 		source.dispose()
+
+		var threwObjectDisposed = false
+		do {
+			_ = try source.register {
+				XCTFail("Should be throwing instead of calling back")
+			}
+		} catch ObjectDisposedException.objectDisposed {
+			threwObjectDisposed = true
+		} catch {
+			XCTFail("Unexpected error: \(error)")
+		}
+
+		XCTAssertTrue(threwObjectDisposed)
+	}
+
+	func testFixedTokens() {
+		let none = CancellationToken.None
+		XCTAssertFalse(none.canBeCanceled)
+		XCTAssertFalse(none.isCancellationRequested)
+
+		let canceled = CancellationToken.Canceled
+		XCTAssertTrue(canceled.canBeCanceled)
+		XCTAssertTrue(canceled.isCancellationRequested)
+
+		let registration1 = try? none.register {
+			XCTFail("Non-cancellable token should never call back")
+		}
+		XCTAssertNotNil(registration1)
+
+		var callbackHappenedCount = 0
+		let registration2 = try? canceled.register {
+			callbackHappenedCount += 1
+		}
+		XCTAssertNotNil(registration2)
+		XCTAssertEqual(callbackHappenedCount, 1)
 	}
 }
