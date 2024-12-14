@@ -12,25 +12,38 @@ class CancellationTests: XCTestCase {
 		XCTAssertFalse(token.isCancellationRequested)
 		XCTAssertTrue(token.canBeCanceled)
 
-		var callbackHappenedCount = 0
-		let registration1 = try? source.register {
-			callbackHappenedCount += 1
+		do {
+			try token.throwIfCancellationIsRequested()
+		} catch OperationCanceledException.operationCanceled {
+			XCTFail("Should not throw when token is not canceled")
+		} catch {
+			XCTFail("Unexpected error: \(error)")
 		}
-		XCTAssertNotNil(registration1)
 
-		let registration2 = try? source.register {
+		var callbackHappenedCount = 0
+		let registrationFromSource = try? source.register {
 			callbackHappenedCount += 1
 		}
-		XCTAssertNotNil(registration2)
+		XCTAssertNotNil(registrationFromSource)
+
+		let registrationFromToken = try? token.register {
+			callbackHappenedCount += 1
+		}
+		XCTAssertNotNil(registrationFromToken)
+
+		let registrationToDispose = try? source.register {
+			callbackHappenedCount += 1
+		}
+		XCTAssertNotNil(registrationToDispose)
 		// Dispose is safe to call multiple times
-		registration2!.dispose()
-		registration2!.dispose()
+		registrationToDispose!.dispose()
+		registrationToDispose!.dispose()
 
 		source.cancel()
 
 		XCTAssertTrue(source.isCancellationRequested)
 		XCTAssertTrue(token.isCancellationRequested)
-		XCTAssertEqual(callbackHappenedCount, 1)
+		XCTAssertEqual(callbackHappenedCount, 2)
 
 		var threwOperationCanceled = false
 		do {
