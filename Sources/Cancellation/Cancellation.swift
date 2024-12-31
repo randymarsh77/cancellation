@@ -16,6 +16,9 @@ public class CancellationTokenSource: IDisposable {
 		return CancellationToken(source: self)
 	}
 
+	public init() {
+	}
+
 	public func dispose() {
 		defer { _lock.unlock() }
 		_lock.lock()
