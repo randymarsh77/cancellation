@@ -5,7 +5,7 @@ public enum OperationCanceledException: Error {
 	case operationCanceled
 }
 
-public class CancellationTokenSource: IDisposable {
+public final class CancellationTokenSource: IDisposable, @unchecked Sendable {
 	public var isCancellationRequested: Bool {
 		defer { _lock.unlock() }
 		_lock.lock()
@@ -90,7 +90,7 @@ public class CancellationTokenSource: IDisposable {
 	private var _lock = NSRecursiveLock()
 }
 
-public class CancellationToken {
+public final class CancellationToken: Sendable {
 	public static var None: CancellationToken {
 		return CancellationToken(isCanceled: false)
 	}
@@ -127,6 +127,7 @@ public class CancellationToken {
 	public init(isCanceled: Bool) {
 		_canBeCanceled = { return isCanceled }
 		_isCancellationRequested = { return isCanceled }
+		_source = nil
 	}
 
 	internal init(source: CancellationTokenSource) {
@@ -135,14 +136,14 @@ public class CancellationToken {
 		_source = source
 	}
 
-	private var _canBeCanceled: () -> Bool
-	private var _isCancellationRequested: () -> Bool
-	private var _source: CancellationTokenSource?
+	private let _canBeCanceled: @Sendable () -> Bool
+	private let _isCancellationRequested: @Sendable () -> Bool
+	private let _source: CancellationTokenSource?
 }
 
 internal typealias DisposeRegistrationDelegate = () -> Void
 
-public class CancellationTokenRegistration: IDisposable {
+public final class CancellationTokenRegistration: IDisposable, @unchecked Sendable {
 	public func dispose() {
 		if _onDispose == nil {
 			return
@@ -159,7 +160,7 @@ public class CancellationTokenRegistration: IDisposable {
 	}
 
 	private var _onDispose: DisposeRegistrationDelegate?
-	private var _lock = NSLock()
+	private let _lock = NSLock()
 }
 
 private func synced(_ lock: NSRecursiveLock, _ closure: () -> Void) {
